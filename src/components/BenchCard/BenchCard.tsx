@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Clock, Volume2, Sun, Armchair } from 'lucide-react';
+import { MapPin, Clock, Volume2, Sun, Armchair, CalendarClock } from 'lucide-react';
 import type { Bench } from '@/types';
 import { MATERIAL_LABELS, SHADE_LABELS, NOISE_LABELS, STAY_DURATION_LABELS } from '@/types';
 import Rating from '@/components/Rating/Rating';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
+import { getEffectiveConfig, getUpcomingRevisions } from '@/utils/revisions';
 
 interface BenchCardProps {
   bench: Bench;
@@ -15,6 +16,8 @@ export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
   const comfortScore = calculateComfortScore(bench);
   const comfortLevel = getComfortLevel(comfortScore);
   const comfortColor = getComfortColor(comfortScore);
+  const config = getEffectiveConfig(bench);
+  const hasUpcoming = getUpcomingRevisions(bench).length > 0;
 
   const staggerClass = `stagger-${(index % 6) + 1}`;
 
@@ -36,7 +39,7 @@ export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
         </div>
 
         <div className="absolute top-3 left-3 px-2 py-1 bg-white/80 backdrop-blur-sm rounded-full text-xs text-ink-light">
-          {MATERIAL_LABELS[bench.material]}
+          {MATERIAL_LABELS[config.material]}
         </div>
       </div>
 
@@ -59,9 +62,15 @@ export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
             <Volume2 className="w-3 h-3" />
             {NOISE_LABELS[bench.noiseLevel]}
           </span>
-          {bench.hasBackrest && (
+          {config.hasBackrest && (
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-moss-green/10 text-moss-green text-xs rounded-md">
               有靠背
+            </span>
+          )}
+          {hasUpcoming && (
+            <span className="inline-flex items-center gap-1 px-2 py-1 bg-ochre/10 text-ochre text-xs rounded-md">
+              <CalendarClock className="w-3 h-3" />
+              改造预告
             </span>
           )}
         </div>

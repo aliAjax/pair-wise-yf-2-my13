@@ -10,6 +10,8 @@ import {
   Sunset,
   Moon,
   CloudSun,
+  History,
+  CalendarClock,
 } from 'lucide-react';
 import { useBenchStore } from '@/store/useBenchStore';
 import {
@@ -31,13 +33,20 @@ import type {
 } from '@/types';
 import Rating from '@/components/Rating/Rating';
 import { generateId } from '@/utils/comfort';
+import {
+  describeRevision,
+  ensureRevisions,
+  getEffectiveRevision,
+  sortRevisions,
+  todayString,
+} from '@/utils/revisions';
 
 export default function AddEditPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isEdit = !!id;
 
-  const { getBenchById, addBench, updateBench, initialize, initialized, addExperience, updateExperience, deleteExperience } = useBenchStore();
+  const { getBenchById, addBench, updateBench, initialize, initialized, addExperience, updateExperience, deleteExperience, addRevision } = useBenchStore();
   const existingBench = id ? getBenchById(id) : undefined;
 
   const [formData, setFormData] = useState({
@@ -56,6 +65,20 @@ export default function AddEditPage() {
   });
 
   const [experiences, setExperiences] = useState<BenchExperience[]>([]);
+
+  const [revisionForm, setRevisionForm] = useState({
+    effectiveDate: todayString(),
+    material: 'wood' as MaterialType,
+    hasBackrest: true,
+    orientation: 'south' as OrientationType,
+    note: '',
+  });
+
+  const sortedRevisions = existingBench ? sortRevisions(ensureRevisions(existingBench)) : [];
+  const lastRevision = sortedRevisions[sortedRevisions.length - 1];
+  const minRevisionDate = lastRevision ? lastRevision.effectiveDate : todayString();
+  const effectiveRevision = existingBench ? getEffectiveRevision(existingBench) : undefined;
+  const today = todayString();
 
   useEffect(() => {
     if (!initialized) {
@@ -80,8 +103,22 @@ export default function AddEditPage() {
         review: existingBench.review,
       });
       setExperiences(existingBench.experiences || []);
+
+      const revisions = sortRevisions(ensureRevisions(existingBench));
+      const latest = revisions[revisions.length - 1];
+      if (latest) {
+        const today = todayString();
+        setRevisionForm({
+          effectiveDate: today < latest.effectiveDate ? latest.effectiveDate : today,
+          material: latest.material,
+          hasBackrest: latest.hasBackrest,
+          orientation: latest.orientation,
+          note: '',
+        });
+      }
     }
-  }, [isEdit, existingBench, initialized]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, initialized, id]);
 
   const handleChange = (field: string, value: string | number | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -113,9 +150,40 @@ export default function AddEditPage() {
     }
   };
 
+  const handleAddRevision = () => {
+    if (!isEdit || !id) return;
+    if (!revisionForm.effectiveDate) {
+      alert('请选择生效日期');
+      return;
+    }
+    if (revisionForm.effectiveDate < minRevisionDate) {
+      alert('生效日期不能早于上一次改造记录');
+      return;
+    }
+    const ok = addRevision(id, {
+      effectiveDate: revisionForm.effectiveDate,
+      material: revisionForm.material,
+      hasBackrest: revisionForm.hasBackrest,
+      orientation: revisionForm.orientation,
+      note: revisionForm.note.trim() || undefined,
+    });
+    if (!ok) {
+      alert('生效日期不能早于上一次改造记录');
+      return;
+    }
+    const today = todayString();
+    setRevisionForm({
+      effectiveDate: today < revisionForm.effectiveDate ? revisionForm.effectiveDate : today,
+      material: revisionForm.material,
+      hasBackrest: revisionForm.hasBackrest,
+      orientation: revisionForm.orientation,
+      note: '',
+    });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       alert('请输入长椅名称');
       return;
@@ -126,9 +194,11 @@ export default function AddEditPage() {
     }
 
     if (isEdit && id) {
-      updateBench(id, formData);
+      // 材质、靠背、朝向由改造履历管理，这里只保存其余档案信息
+      const { name, location, lat, lng, shadeLevel, noiseLevel, stayDuration, rating, review } = formData;
+      updateBench(id, { name, location, lat, lng, shadeLevel, noiseLevel, stayDuration, rating, review });
       experiences.forEach((exp) => {
-        const existingExp = existingBench?.experiences.find((e) => e.id === exp.id);
+        const existingExp = existingBench?.experiences.find((item) => item.id === exp.id);
         if (existingExp) {
           updateExperience(id, exp.id, exp);
         } else {
@@ -235,6 +305,20 @@ export default function AddEditPage() {
             </h2>
 
             <div className="grid grid-cols-2 gap-4">
+              {isEdit && effectiveRevision && (
+                <div className="col-span-2 flex flex-wrap items-center gap-2 p-3 bg-moss-green/5 rounded-lg">
+                  <History className="w-4 h-4 text-moss-green flex-shrink-0" />
+                  <span className="text-sm text-ink-light">当前生效配置</span>
+                  <span className="text-sm font-medium text-deep-brown">
+                    {describeRevision(effectiveRevision)}
+                  </span>
+                  <span className="text-xs text-ink-light/60 ml-auto">
+                    材质、靠背、朝向请在下方「改造履历」中变更
+                  </span>
+                </div>
+              )}
+
+              {!isEdit && (
               <div>
                 <label className="block text-sm font-medium text-deep-brown mb-1.5">
                   材质
@@ -251,7 +335,9 @@ export default function AddEditPage() {
                   ))}
                 </select>
               </div>
+              )}
 
+              {!isEdit && (
               <div>
                 <label className="block text-sm font-medium text-deep-brown mb-1.5">
                   朝向
@@ -268,6 +354,7 @@ export default function AddEditPage() {
                   ))}
                 </select>
               </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-deep-brown mb-1.5">
@@ -320,6 +407,7 @@ export default function AddEditPage() {
                 </select>
               </div>
 
+              {!isEdit && (
               <div>
                 <label className="block text-sm font-medium text-deep-brown mb-1.5">
                   是否有靠背
@@ -347,8 +435,159 @@ export default function AddEditPage() {
                   </label>
                 </div>
               </div>
+              )}
             </div>
           </div>
+
+          {isEdit && existingBench && (
+            <div className="paper-texture rounded-xl shadow-paper p-6 fade-in opacity-0 stagger-3">
+              <h2 className="font-serif text-lg font-semibold text-deep-brown mb-1">
+                改造履历
+              </h2>
+              <p className="text-xs text-ink-light mb-4">
+                按生效日期记录材质、靠背和朝向；同一天只保留一条记录，新记录不能早于上一条。
+              </p>
+
+              <div className="space-y-3 mb-5">
+                {sortedRevisions.map((revision, index) => {
+                  const isEffective = effectiveRevision?.id === revision.id;
+                  const isUpcoming = revision.effectiveDate > today;
+                  return (
+                    <div
+                      key={revision.id}
+                      className={`p-3 rounded-lg border ${
+                        isUpcoming
+                          ? 'border-dashed border-ochre/50 bg-ochre/5'
+                          : isEffective
+                            ? 'border-moss-green/30 bg-moss-green/5'
+                            : 'border-deep-brown/5 bg-warm-cream/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-ink-light">{revision.effectiveDate}</span>
+                        {isUpcoming ? (
+                          <span className="inline-flex items-center gap-1 text-xs text-ochre">
+                            <CalendarClock className="w-3 h-3" />
+                            预告 · 尚未生效
+                          </span>
+                        ) : isEffective ? (
+                          <span className="text-xs font-medium text-moss-green">当前生效</span>
+                        ) : index === 0 ? (
+                          <span className="text-xs text-ink-light/60">初始配置</span>
+                        ) : null}
+                      </div>
+                      <p className="text-sm text-deep-brown">{describeRevision(revision)}</p>
+                      {revision.note && (
+                        <p className="text-xs text-ink-light mt-1">{revision.note}</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="p-4 bg-warm-cream/50 rounded-lg">
+                <h3 className="text-sm font-medium text-deep-brown mb-3">记录一次改造</h3>
+                <div className="grid grid-cols-2 gap-3 mb-3">
+                  <div>
+                    <label className="text-xs text-ink-light mb-1 block">生效日期</label>
+                    <input
+                      type="date"
+                      min={minRevisionDate}
+                      value={revisionForm.effectiveDate}
+                      onChange={(e) =>
+                        setRevisionForm((prev) => ({ ...prev, effectiveDate: e.target.value }))
+                      }
+                      className="w-full px-3 py-2 text-sm bg-white/60 border border-deep-brown/10 rounded-md text-deep-brown focus:bg-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-ink-light mb-1 block">材质</label>
+                    <select
+                      value={revisionForm.material}
+                      onChange={(e) =>
+                        setRevisionForm((prev) => ({ ...prev, material: e.target.value as MaterialType }))
+                      }
+                      className="w-full px-3 py-2 text-sm bg-white/60 border border-deep-brown/10 rounded-md text-deep-brown cursor-pointer"
+                    >
+                      {Object.entries(MATERIAL_LABELS).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-ink-light mb-1 block">朝向</label>
+                    <select
+                      value={revisionForm.orientation}
+                      onChange={(e) =>
+                        setRevisionForm((prev) => ({ ...prev, orientation: e.target.value as OrientationType }))
+                      }
+                      className="w-full px-3 py-2 text-sm bg-white/60 border border-deep-brown/10 rounded-md text-deep-brown cursor-pointer"
+                    >
+                      {Object.entries(ORIENTATION_LABELS).map(([value, label]) => (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-ink-light mb-1 block">靠背</label>
+                    <div className="flex items-center gap-4 h-[38px]">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="revisionHasBackrest"
+                          checked={revisionForm.hasBackrest}
+                          onChange={() => setRevisionForm((prev) => ({ ...prev, hasBackrest: true }))}
+                          className="text-moss-green focus:ring-moss-green"
+                        />
+                        <span className="text-sm text-deep-brown">有</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="revisionHasBackrest"
+                          checked={!revisionForm.hasBackrest}
+                          onChange={() => setRevisionForm((prev) => ({ ...prev, hasBackrest: false }))}
+                          className="text-moss-green focus:ring-moss-green"
+                        />
+                        <span className="text-sm text-deep-brown">无</span>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <label className="text-xs text-ink-light mb-1 block">备注（可选）</label>
+                  <input
+                    type="text"
+                    value={revisionForm.note}
+                    onChange={(e) =>
+                      setRevisionForm((prev) => ({ ...prev, note: e.target.value }))
+                    }
+                    placeholder="例如：更换为金属座椅"
+                    className="w-full px-3 py-2 text-sm bg-white/60 border border-deep-brown/10 rounded-md text-deep-brown placeholder:text-ink-light/60 focus:bg-white"
+                  />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs text-ink-light/70">
+                    {revisionForm.effectiveDate === minRevisionDate && sortedRevisions.length > 0
+                      ? '该日期已有记录，保存后将覆盖同一天的旧记录'
+                      : '生效日期不能早于上一次记录'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleAddRevision}
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm text-white bg-moss-green hover:bg-moss-light rounded-lg transition-colors flex-shrink-0"
+                  >
+                    <Plus className="w-4 h-4" />
+                    记录改造
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="paper-texture rounded-xl shadow-paper p-6 fade-in opacity-0 stagger-3">
             <h2 className="font-serif text-lg font-semibold text-deep-brown mb-4">
@@ -399,7 +638,7 @@ export default function AddEditPage() {
 
             {experiences.length > 0 ? (
               <div className="space-y-4">
-                {experiences.map((exp, index) => {
+                {experiences.map((exp) => {
                   const TimeIcon = timePeriodIcons[exp.timePeriod];
                   return (
                     <div

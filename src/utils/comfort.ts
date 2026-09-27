@@ -1,4 +1,5 @@
 import type { Bench, MaterialType, ShadeLevelType, NoiseLevelType } from '@/types';
+import { getEffectiveConfig } from '@/utils/revisions';
 
 const materialScores: Record<MaterialType, number> = {
   wood: 5,
@@ -21,10 +22,11 @@ const noiseScores: Record<NoiseLevelType, number> = {
 };
 
 export function calculateComfortScore(bench: Bench): number {
-  const backrestScore = bench.hasBackrest ? 5 : 2;
+  const config = getEffectiveConfig(bench);
+  const backrestScore = config.hasBackrest ? 5 : 2;
   const shadeScore = shadeScores[bench.shadeLevel];
   const noiseScore = noiseScores[bench.noiseLevel];
-  const materialScore = materialScores[bench.material];
+  const materialScore = materialScores[config.material];
   const userRating = bench.rating;
 
   const comfort = backrestScore * 0.2 + shadeScore * 0.2 + noiseScore * 0.2 + materialScore * 0.15 + userRating * 0.25;

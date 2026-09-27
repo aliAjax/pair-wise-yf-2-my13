@@ -40,6 +40,15 @@ export const mockBenches: Bench[] = [
     ],
     createdAt: '2024-01-15T10:30:00Z',
     updatedAt: '2024-01-20T14:20:00Z',
+    revisions: [
+      {
+        id: 'rev-001-1',
+        effectiveDate: '2024-01-15',
+        material: 'wood',
+        hasBackrest: true,
+        orientation: 'south',
+      },
+    ],
   },
   {
     id: 'bench-002',
@@ -76,10 +85,28 @@ export const mockBenches: Bench[] = [
         timePeriod: 'evening',
         notes: '傍晚看日落很美，江风凉爽。',
         rating: 5,
+        revisionId: 'rev-002-2',
       },
     ],
     createdAt: '2024-02-10T08:15:00Z',
     updatedAt: '2024-02-12T18:30:00Z',
+    revisions: [
+      {
+        id: 'rev-002-1',
+        effectiveDate: '2024-02-10',
+        material: 'metal',
+        hasBackrest: false,
+        orientation: 'east',
+      },
+      {
+        id: 'rev-002-2',
+        effectiveDate: '2024-06-15',
+        material: 'metal',
+        hasBackrest: true,
+        orientation: 'east',
+        note: '加装了靠背',
+      },
+    ],
   },
   {
     id: 'bench-003',
@@ -106,6 +133,23 @@ export const mockBenches: Bench[] = [
     ],
     createdAt: '2024-03-05T16:45:00Z',
     updatedAt: '2024-03-05T16:45:00Z',
+    revisions: [
+      {
+        id: 'rev-003-1',
+        effectiveDate: '2024-03-05',
+        material: 'wood',
+        hasBackrest: true,
+        orientation: 'southwest',
+      },
+      {
+        id: 'rev-003-2',
+        effectiveDate: '2024-08-01',
+        material: 'stone',
+        hasBackrest: false,
+        orientation: 'southwest',
+        note: '木椅老化，更换为石凳',
+      },
+    ],
   },
   {
     id: 'bench-004',
@@ -139,6 +183,15 @@ export const mockBenches: Bench[] = [
     ],
     createdAt: '2024-01-28T09:00:00Z',
     updatedAt: '2024-02-05T20:10:00Z',
+    revisions: [
+      {
+        id: 'rev-004-1',
+        effectiveDate: '2024-01-28',
+        material: 'wood',
+        hasBackrest: true,
+        orientation: 'north',
+      },
+    ],
   },
   {
     id: 'bench-005',
@@ -165,6 +218,23 @@ export const mockBenches: Bench[] = [
     ],
     createdAt: '2024-03-12T12:30:00Z',
     updatedAt: '2024-03-12T12:30:00Z',
+    revisions: [
+      {
+        id: 'rev-005-1',
+        effectiveDate: '2024-03-12',
+        material: 'plastic',
+        hasBackrest: false,
+        orientation: 'southeast',
+      },
+      {
+        id: 'rev-005-2',
+        effectiveDate: '2026-12-01',
+        material: 'mixed',
+        hasBackrest: true,
+        orientation: 'southeast',
+        note: '广场改造计划：更换混合材质座椅并加装靠背',
+      },
+    ],
   },
   {
     id: 'bench-006',
@@ -205,5 +275,14 @@ export const mockBenches: Bench[] = [
     ],
     createdAt: '2024-02-20T15:00:00Z',
     updatedAt: '2024-03-01T11:20:00Z',
+    revisions: [
+      {
+        id: 'rev-006-1',
+        effectiveDate: '2024-02-20',
+        material: 'mixed',
+        hasBackrest: true,
+        orientation: 'northeast',
+      },
+    ],
   },
 ];

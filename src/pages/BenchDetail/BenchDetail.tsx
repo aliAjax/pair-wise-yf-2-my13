@@ -14,6 +14,8 @@ import {
   Sunset,
   Moon,
   CloudSun,
+  History,
+  CalendarClock,
 } from 'lucide-react';
 import { useBenchStore } from '@/store/useBenchStore';
 import {
@@ -27,6 +29,14 @@ import {
 import type { TimePeriodType } from '@/types';
 import Rating from '@/components/Rating/Rating';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
+import {
+  describeRevision,
+  ensureRevisions,
+  getEffectiveConfig,
+  getEffectiveRevision,
+  sortRevisions,
+  todayString,
+} from '@/utils/revisions';
 
 export default function BenchDetail() {
   const { id } = useParams<{ id: string }>();
@@ -61,6 +71,13 @@ export default function BenchDetail() {
   const comfortScore = calculateComfortScore(bench);
   const comfortLevel = getComfortLevel(comfortScore);
   const comfortColor = getComfortColor(comfortScore);
+
+  const today = todayString();
+  const config = getEffectiveConfig(bench);
+  const effectiveRevision = getEffectiveRevision(bench);
+  const sortedRevisions = sortRevisions(ensureRevisions(bench));
+  const revisionById = new Map(sortedRevisions.map((revision) => [revision.id, revision]));
+  const firstRevision = sortedRevisions[0];
 
   const timePeriodIcons: Record<TimePeriodType, typeof Sunrise> = {
     morning: Sunrise,
@@ -153,14 +170,14 @@ export default function BenchDetail() {
                   <Armchair className="w-5 h-5 text-moss-green mx-auto mb-1" />
                   <div className="text-xs text-ink-light mb-0.5">靠背</div>
                   <div className="text-sm font-medium text-deep-brown">
-                    {bench.hasBackrest ? '有' : '无'}
+                    {config.hasBackrest ? '有' : '无'}
                   </div>
                 </div>
                 <div className="text-center p-3 bg-ochre/5 rounded-lg">
                   <Compass className="w-5 h-5 text-ochre mx-auto mb-1" />
                   <div className="text-xs text-ink-light mb-0.5">朝向</div>
                   <div className="text-sm font-medium text-deep-brown">
-                    {ORIENTATION_LABELS[bench.orientation]}
+                    {ORIENTATION_LABELS[config.orientation]}
                   </div>
                 </div>
               </div>
@@ -169,7 +186,7 @@ export default function BenchDetail() {
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-ink-light">材质</span>
                   <span className="text-sm font-medium text-deep-brown">
-                    {MATERIAL_LABELS[bench.material]}
+                    {MATERIAL_LABELS[config.material]}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
@@ -223,6 +240,10 @@ export default function BenchDetail() {
               <div className="space-y-4">
                 {sortedExperiences.map((experience) => {
                   const TimeIcon = timePeriodIcons[experience.timePeriod];
+                  const expRevision =
+                    (experience.revisionId && revisionById.get(experience.revisionId)) ||
+                    firstRevision;
+                  const isOldVersion = expRevision && expRevision.id !== effectiveRevision.id;
                   return (
                     <div
                       key={experience.id}
@@ -240,6 +261,12 @@ export default function BenchDetail() {
                       <p className="text-sm text-ink-light leading-relaxed">
                         {experience.notes}
                       </p>
+                      {isOldVersion && (
+                        <div className="mt-2 flex items-center gap-1 text-xs text-ink-light/70">
+                          <History className="w-3 h-3 flex-shrink-0" />
+                          <span>改前版本 · {describeRevision(expRevision)}</span>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -260,6 +287,49 @@ export default function BenchDetail() {
           </div>
 
           <div className="paper-texture rounded-xl shadow-paper p-6 fade-in opacity-0 stagger-3">
+            <h2 className="font-serif text-lg font-semibold text-deep-brown mb-4">
+              改造履历
+            </h2>
+
+            <div className="space-y-3">
+              {sortedRevisions.map((revision, index) => {
+                const isEffective = revision.id === effectiveRevision.id;
+                const isUpcoming = revision.effectiveDate > today;
+                return (
+                  <div
+                    key={revision.id}
+                    className={`p-3 rounded-lg border ${
+                      isUpcoming
+                        ? 'border-dashed border-ochre/50 bg-ochre/5'
+                        : isEffective
+                          ? 'border-moss-green/30 bg-moss-green/5'
+                          : 'border-deep-brown/5 bg-warm-cream/50'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-ink-light">{revision.effectiveDate}</span>
+                      {isUpcoming ? (
+                        <span className="inline-flex items-center gap-1 text-xs text-ochre">
+                          <CalendarClock className="w-3 h-3" />
+                          预告 · 尚未生效
+                        </span>
+                      ) : isEffective ? (
+                        <span className="text-xs font-medium text-moss-green">当前生效</span>
+                      ) : index === 0 ? (
+                        <span className="text-xs text-ink-light/60">初始配置</span>
+                      ) : null}
+                    </div>
+                    <p className="text-sm text-deep-brown">{describeRevision(revision)}</p>
+                    {revision.note && (
+                      <p className="text-xs text-ink-light mt-1">{revision.note}</p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="paper-texture rounded-xl shadow-paper p-6 fade-in opacity-0 stagger-4">
             <h3 className="font-serif text-sm font-semibold text-deep-brown mb-3">
               档案信息
             </h3>
@@ -279,6 +349,10 @@ export default function BenchDetail() {
               <div className="flex justify-between">
                 <span className="text-ink-light">时段记录</span>
                 <span className="text-deep-brown">{bench.experiences.length} 条</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-ink-light">改造记录</span>
+                <span className="text-deep-brown">{sortedRevisions.length} 条</span>
               </div>
             </div>
           </div>

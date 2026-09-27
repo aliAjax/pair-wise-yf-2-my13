@@ -5,12 +5,24 @@ export type NoiseLevelType = 'quiet' | 'moderate' | 'noisy';
 export type StayDurationType = 'short' | 'medium' | 'long' | 'verylong';
 export type TimePeriodType = 'morning' | 'noon' | 'afternoon' | 'evening' | 'night';
 
+export interface BenchRevision {
+  id: string;
+  /** 生效日期，格式 YYYY-MM-DD */
+  effectiveDate: string;
+  material: MaterialType;
+  hasBackrest: boolean;
+  orientation: OrientationType;
+  note?: string;
+}
+
 export interface BenchExperience {
   id: string;
   benchId: string;
   timePeriod: TimePeriodType;
   notes: string;
   rating: number;
+  /** 记录该体验时生效的改造版本，旧体验继续对应改前版本 */
+  revisionId?: string;
 }
 
 export interface Bench {
@@ -28,6 +40,8 @@ export interface Bench {
   rating: number;
   review: string;
   experiences: BenchExperience[];
+  /** 改造履历：按生效日期记录材质、靠背和朝向 */
+  revisions: BenchRevision[];
   createdAt: string;
   updatedAt: string;
 }
