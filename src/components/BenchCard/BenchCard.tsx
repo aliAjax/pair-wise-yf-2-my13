@@ -4,6 +4,7 @@ import type { Bench } from '@/types';
 import { MATERIAL_LABELS, SHADE_LABELS, NOISE_LABELS, STAY_DURATION_LABELS } from '@/types';
 import Rating from '@/components/Rating/Rating';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
+import { dateKey, getEffectiveVersion } from '@/utils/version';
 
 interface BenchCardProps {
   bench: Bench;
@@ -12,7 +13,9 @@ interface BenchCardProps {
 
 export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
   const navigate = useNavigate();
-  const comfortScore = calculateComfortScore(bench);
+  const today = dateKey();
+  const effectiveVersion = getEffectiveVersion(bench, today);
+  const comfortScore = calculateComfortScore(bench, today);
   const comfortLevel = getComfortLevel(comfortScore);
   const comfortColor = getComfortColor(comfortScore);
 
@@ -36,7 +39,7 @@ export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
         </div>
 
         <div className="absolute top-3 left-3 px-2 py-1 bg-white/80 backdrop-blur-sm rounded-full text-xs text-ink-light">
-          {MATERIAL_LABELS[bench.material]}
+          {MATERIAL_LABELS[effectiveVersion.material]}
         </div>
       </div>
 
@@ -59,7 +62,7 @@ export default function BenchCard({ bench, index = 0 }: BenchCardProps) {
             <Volume2 className="w-3 h-3" />
             {NOISE_LABELS[bench.noiseLevel]}
           </span>
-          {bench.hasBackrest && (
+          {effectiveVersion.hasBackrest && (
             <span className="inline-flex items-center gap-1 px-2 py-1 bg-moss-green/10 text-moss-green text-xs rounded-md">
               有靠背
             </span>

@@ -1,14 +1,15 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trophy, MapPin, Star, Crown, Medal, Award } from 'lucide-react';
+import { Trophy, MapPin, Star, Crown, Medal, Award, CalendarClock } from 'lucide-react';
 import { useBenchStore } from '@/store/useBenchStore';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
 import { MATERIAL_LABELS, SHADE_LABELS } from '@/types';
-import type { Bench } from '@/types';
+import { dateKey, getEffectiveVersion, getUpcomingVersions } from '@/utils/version';
 
 export default function RankingPage() {
   const { benches, initialize, initialized } = useBenchStore();
   const navigate = useNavigate();
+  const today = dateKey();
 
   useEffect(() => {
     if (!initialized) {
@@ -17,7 +18,7 @@ export default function RankingPage() {
   }, [initialized, initialize]);
 
   const rankedBenches = [...benches]
-    .sort((a, b) => calculateComfortScore(b) - calculateComfortScore(a))
+    .sort((a, b) => calculateComfortScore(b, today) - calculateComfortScore(a, today))
     .map((bench, index) => ({ bench, rank: index + 1 }));
 
   const getRankIcon = (rank: number) => {
@@ -47,7 +48,9 @@ export default function RankingPage() {
 
       <div className="space-y-3">
         {rankedBenches.map(({ bench, rank }) => {
-          const comfortScore = calculateComfortScore(bench);
+          const effectiveVersion = getEffectiveVersion(bench, today);
+          const upcoming = getUpcomingVersions(bench, today);
+          const comfortScore = calculateComfortScore(bench, today);
           const comfortLevel = getComfortLevel(comfortScore);
           const comfortColor = getComfortColor(comfortScore);
 
@@ -72,6 +75,15 @@ export default function RankingPage() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${comfortColor} bg-white/80`}>
                       {comfortLevel}
                     </span>
+                    {upcoming.length > 0 && (
+                      <span
+                        className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs text-ochre bg-ochre/10"
+                        title={`${upcoming[0].effectiveDate} 起配置将调整，尚未参与排行`}
+                      >
+                        <CalendarClock className="w-3 h-3" />
+                        {upcoming[0].effectiveDate} 预告
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-1 text-ink-light text-sm mb-2">
@@ -81,7 +93,7 @@ export default function RankingPage() {
 
                   <div className="flex flex-wrap gap-2">
                     <span className="text-xs text-ink-light px-2 py-0.5 bg-white/60 rounded">
-                      {MATERIAL_LABELS[bench.material]}
+                      {MATERIAL_LABELS[effectiveVersion.material]}
                     </span>
                     <span className="text-xs text-ink-light px-2 py-0.5 bg-white/60 rounded">
                       {SHADE_LABELS[bench.shadeLevel]}

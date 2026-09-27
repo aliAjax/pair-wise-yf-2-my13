@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, Armchair, Info } from 'lucide-react';
 import { useBenchStore } from '@/store/useBenchStore';
 import { calculateComfortScore, getComfortColor } from '@/utils/comfort';
+import { dateKey } from '@/utils/version';
 import type { Bench } from '@/types';
 
 export default function MapPage() {
   const { benches, initialize, initialized } = useBenchStore();
   const navigate = useNavigate();
   const [hoveredBench, setHoveredBench] = useState<Bench | null>(null);
+  const today = dateKey();
 
   useEffect(() => {
     if (!initialized) {
@@ -59,7 +61,7 @@ export default function MapPage() {
 
           {benches.map((bench) => {
             const position = getPositionStyle(bench);
-            const comfortScore = calculateComfortScore(bench);
+            const comfortScore = calculateComfortScore(bench, today);
             const colorClass = getComfortColor(comfortScore);
             
             return (

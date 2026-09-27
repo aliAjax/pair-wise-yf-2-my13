@@ -15,6 +15,15 @@ export const mockBenches: Bench[] = [
     stayDuration: 'long',
     rating: 5,
     review: '公园里最爱的长椅，夏天梧桐叶茂盛时完全遮阴，偶尔能听到鸟鸣。',
+    versions: [
+      {
+        id: 'bench-001-v0',
+        effectiveDate: '2024-01-15',
+        material: 'wood',
+        orientation: 'south',
+        hasBackrest: true,
+      },
+    ],
     experiences: [
       {
         id: 'exp-001',
@@ -55,6 +64,15 @@ export const mockBenches: Bench[] = [
     stayDuration: 'medium',
     rating: 3,
     review: '视野很好能看到江景，但是夏天太烫，冬天又太凉。',
+    versions: [
+      {
+        id: 'bench-002-v0',
+        effectiveDate: '2024-02-10',
+        material: 'metal',
+        orientation: 'east',
+        hasBackrest: true,
+      },
+    ],
     experiences: [
       {
         id: 'exp-004',
@@ -88,13 +106,36 @@ export const mockBenches: Bench[] = [
     lat: 31.2280,
     lng: 121.4650,
     material: 'stone',
-    orientation: 'southwest',
-    hasBackrest: false,
+    orientation: 'west',
+    hasBackrest: true,
     shadeLevel: 'partial',
     noiseLevel: 'moderate',
     stayDuration: 'short',
     rating: 2,
-    review: '没有靠背坐着不太舒服，适合短暂休息等人。',
+    review: '原先没有靠背坐着不太舒服，只能短暂休息等人；加装靠背之后好多了。听说接下来还要换成木椅。',
+    versions: [
+      {
+        id: 'bench-003-v0',
+        effectiveDate: '2024-03-05',
+        material: 'stone',
+        orientation: 'southwest',
+        hasBackrest: false,
+      },
+      {
+        id: 'bench-003-v1',
+        effectiveDate: '2026-08-10',
+        material: 'stone',
+        orientation: 'west',
+        hasBackrest: true,
+      },
+      {
+        id: 'bench-003-v2',
+        effectiveDate: '2026-12-01',
+        material: 'wood',
+        orientation: 'west',
+        hasBackrest: true,
+      },
+    ],
     experiences: [
       {
         id: 'exp-007',
@@ -121,6 +162,15 @@ export const mockBenches: Bench[] = [
     stayDuration: 'verylong',
     rating: 4,
     review: '在廊檐下，下雨也不怕，周围很安静，适合看书。',
+    versions: [
+      {
+        id: 'bench-004-v0',
+        effectiveDate: '2024-01-28',
+        material: 'wood',
+        orientation: 'north',
+        hasBackrest: true,
+      },
+    ],
     experiences: [
       {
         id: 'exp-008',
@@ -154,6 +204,15 @@ export const mockBenches: Bench[] = [
     stayDuration: 'short',
     rating: 1,
     review: '人多嘈杂，椅子也不舒服，只能歇脚。',
+    versions: [
+      {
+        id: 'bench-005-v0',
+        effectiveDate: '2024-03-12',
+        material: 'plastic',
+        orientation: 'southeast',
+        hasBackrest: false,
+      },
+    ],
     experiences: [
       {
         id: 'exp-010',
@@ -180,6 +239,15 @@ export const mockBenches: Bench[] = [
     stayDuration: 'long',
     rating: 5,
     review: '学生时代的回忆，两排梧桐树完全遮住阳光，夏天特别凉快。',
+    versions: [
+      {
+        id: 'bench-006-v0',
+        effectiveDate: '2024-02-20',
+        material: 'mixed',
+        orientation: 'northeast',
+        hasBackrest: true,
+      },
+    ],
     experiences: [
       {
         id: 'exp-011',

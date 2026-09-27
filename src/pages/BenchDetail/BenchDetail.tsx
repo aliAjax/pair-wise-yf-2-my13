@@ -14,6 +14,8 @@ import {
   Sunset,
   Moon,
   CloudSun,
+  History,
+  CalendarClock,
 } from 'lucide-react';
 import { useBenchStore } from '@/store/useBenchStore';
 import {
@@ -27,12 +29,21 @@ import {
 import type { TimePeriodType } from '@/types';
 import Rating from '@/components/Rating/Rating';
 import { calculateComfortScore, getComfortLevel, getComfortColor } from '@/utils/comfort';
+import {
+  dateKey,
+  describeVersion,
+  getEffectiveVersion,
+  getUpcomingVersions,
+  resolveExperienceVersion,
+  sortVersions,
+} from '@/utils/version';
 
 export default function BenchDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { getBenchById, deleteBench, initialize, initialized } = useBenchStore();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const today = dateKey();
 
   useEffect(() => {
     if (!initialized) {
@@ -58,7 +69,10 @@ export default function BenchDetail() {
     );
   }
 
-  const comfortScore = calculateComfortScore(bench);
+  const effectiveVersion = getEffectiveVersion(bench, today);
+  const upcomingVersions = getUpcomingVersions(bench, today);
+  const timeline = sortVersions(bench.versions ?? []).slice().reverse();
+  const comfortScore = calculateComfortScore(bench, today);
   const comfortLevel = getComfortLevel(comfortScore);
   const comfortColor = getComfortColor(comfortScore);
 
@@ -153,14 +167,14 @@ export default function BenchDetail() {
                   <Armchair className="w-5 h-5 text-moss-green mx-auto mb-1" />
                   <div className="text-xs text-ink-light mb-0.5">靠背</div>
                   <div className="text-sm font-medium text-deep-brown">
-                    {bench.hasBackrest ? '有' : '无'}
+                    {effectiveVersion.hasBackrest ? '有' : '无'}
                   </div>
                 </div>
                 <div className="text-center p-3 bg-ochre/5 rounded-lg">
                   <Compass className="w-5 h-5 text-ochre mx-auto mb-1" />
                   <div className="text-xs text-ink-light mb-0.5">朝向</div>
                   <div className="text-sm font-medium text-deep-brown">
-                    {ORIENTATION_LABELS[bench.orientation]}
+                    {ORIENTATION_LABELS[effectiveVersion.orientation]}
                   </div>
                 </div>
               </div>
@@ -169,7 +183,7 @@ export default function BenchDetail() {
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-ink-light">材质</span>
                   <span className="text-sm font-medium text-deep-brown">
-                    {MATERIAL_LABELS[bench.material]}
+                    {MATERIAL_LABELS[effectiveVersion.material]}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
@@ -211,6 +225,76 @@ export default function BenchDetail() {
               </div>
             </div>
           </div>
+
+          <div className="paper-texture rounded-xl shadow-paper p-6 fade-in opacity-0 stagger-2">
+            <h2 className="font-serif text-lg font-semibold text-deep-brown mb-1 flex items-center gap-2">
+              <History className="w-5 h-5 text-moss-green" />
+              改造履历
+            </h2>
+            <p className="text-xs text-ink-light mb-4">
+              按生效日期记录材质、靠背与朝向，列表与排行按当前生效版本计分
+            </p>
+
+            {upcomingVersions.length > 0 && (
+              <div className="mb-4 p-3 rounded-lg bg-ochre/10 border border-ochre/20">
+                <div className="flex items-center gap-2 text-sm font-medium text-ochre mb-1">
+                  <CalendarClock className="w-4 h-4" />
+                  改造预告
+                </div>
+                <p className="text-xs text-deep-brown/70 leading-relaxed">
+                  {upcomingVersions[0].effectiveDate} 起将改为
+                  「{describeVersion(upcomingVersions[0])}」，尚未生效，暂不影响当前配置与排行。
+                </p>
+              </div>
+            )}
+
+            <div className="relative">
+              {timeline.map((version, index) => {
+                const isCurrent = version.id === effectiveVersion.id;
+                const isFuture = version.effectiveDate > today;
+                const isLast = index === timeline.length - 1;
+                return (
+                  <div key={version.id} className="relative flex gap-4 pb-5 last:pb-0">
+                    {!isLast && (
+                      <div className="absolute left-[7px] top-5 bottom-0 w-px bg-deep-brown/15" />
+                    )}
+                    <div
+                      className={`relative z-10 w-4 h-4 mt-1 rounded-full border-2 flex-shrink-0 ${
+                        isFuture
+                          ? 'bg-warm-cream border-ochre'
+                          : isCurrent
+                            ? 'bg-moss-green border-moss-green'
+                            : 'bg-white border-deep-brown/30'
+                      }`}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <span className="text-sm font-medium text-deep-brown">
+                          {version.effectiveDate}
+                        </span>
+                        {isCurrent && (
+                          <span className="text-xs text-moss-green bg-moss-green/10 px-2 py-0.5 rounded-full">
+                            当前生效
+                          </span>
+                        )}
+                        {isFuture && (
+                          <span className="text-xs text-ochre bg-ochre/10 px-2 py-0.5 rounded-full">
+                            预告 · 尚未生效
+                          </span>
+                        )}
+                        {!isCurrent && !isFuture && (
+                          <span className="text-xs text-ink-light bg-deep-brown/5 px-2 py-0.5 rounded-full">
+                            历史版本
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-ink-light">{describeVersion(version)}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         <div className="space-y-6">
@@ -223,12 +307,15 @@ export default function BenchDetail() {
               <div className="space-y-4">
                 {sortedExperiences.map((experience) => {
                   const TimeIcon = timePeriodIcons[experience.timePeriod];
+                  const expVersion = resolveExperienceVersion(bench, experience.versionId);
+                  const isCurrentVersion = expVersion.id === effectiveVersion.id;
+                  const isFutureVersion = expVersion.effectiveDate > today;
                   return (
                     <div
                       key={experience.id}
                       className="p-4 bg-warm-cream/50 rounded-lg hover:bg-warm-cream transition-colors"
                     >
-                      <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center justify-between mb-2 gap-2">
                         <div className="flex items-center gap-2">
                           <TimeIcon className="w-4 h-4 text-ochre" />
                           <span className="font-medium text-deep-brown text-sm">
@@ -236,6 +323,23 @@ export default function BenchDetail() {
                           </span>
                         </div>
                         <Rating value={experience.rating} readOnly size="sm" />
+                      </div>
+                      <div className="mb-2">
+                        <span
+                          className={`inline-block text-xs px-2 py-0.5 rounded ${
+                            isFutureVersion
+                              ? 'text-ochre bg-ochre/10'
+                              : isCurrentVersion
+                                ? 'text-moss-green bg-moss-green/10'
+                                : 'text-ink-light bg-deep-brown/5'
+                          }`}
+                        >
+                          {isFutureVersion
+                            ? `${expVersion.effectiveDate} 预告配置`
+                            : isCurrentVersion
+                              ? `${expVersion.effectiveDate} 当前配置`
+                              : `${expVersion.effectiveDate} 改前体验`}
+                        </span>
                       </div>
                       <p className="text-sm text-ink-light leading-relaxed">
                         {experience.notes}
@@ -277,6 +381,16 @@ export default function BenchDetail() {
                 </span>
               </div>
               <div className="flex justify-between">
+                <span className="text-ink-light">改造记录</span>
+                <span className="text-deep-brown">
+                  {(bench.versions?.length ?? 0) - 1} 次
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-ink-light">待生效</span>
+                <span className="text-deep-brown">{upcomingVersions.length} 条预告</span>
+              </div>
+              <div className="flex justify-between">
                 <span className="text-ink-light">时段记录</span>
                 <span className="text-deep-brown">{bench.experiences.length} 条</span>
               </div>
@@ -292,7 +406,7 @@ export default function BenchDetail() {
               确认删除
             </h3>
             <p className="text-ink-light text-sm mb-6">
-              确定要删除这张长椅的档案吗？此操作无法撤销。
+              确定要移走这张长椅吗？档案与改造履历将一并删除，此操作无法撤销。
             </p>
             <div className="flex gap-3">
               <button

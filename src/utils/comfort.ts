@@ -1,4 +1,5 @@
 import type { Bench, MaterialType, ShadeLevelType, NoiseLevelType } from '@/types';
+import { getEffectiveVersion } from '@/utils/version';
 
 const materialScores: Record<MaterialType, number> = {
   wood: 5,
@@ -20,11 +21,16 @@ const noiseScores: Record<NoiseLevelType, number> = {
   noisy: 1,
 };
 
-export function calculateComfortScore(bench: Bench): number {
-  const backrestScore = bench.hasBackrest ? 5 : 2;
+/**
+ * 舒适度按当前日期生效的改造版本计分：
+ * 材质与靠背取自最近生效版本，遮阴、噪音和个人评分仍取档案现值。
+ */
+export function calculateComfortScore(bench: Bench, today?: string): number {
+  const version = getEffectiveVersion(bench, today);
+  const backrestScore = version.hasBackrest ? 5 : 2;
   const shadeScore = shadeScores[bench.shadeLevel];
   const noiseScore = noiseScores[bench.noiseLevel];
-  const materialScore = materialScores[bench.material];
+  const materialScore = materialScores[version.material];
   const userRating = bench.rating;
 
   const comfort = backrestScore * 0.2 + shadeScore * 0.2 + noiseScore * 0.2 + materialScore * 0.15 + userRating * 0.25;
